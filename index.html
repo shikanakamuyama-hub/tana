@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="棚卸">
+<meta name="theme-color" content="#44546A">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>棚卸ツール</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F2F3F5;
+  --card: #FFFFFF;
+  --text: #1F2328;
+  --sub: #5B6370;
+  --line: #D0D4DA;
+  --head: #44546A;
+  --accent: #2F75B5;
+  --ok-bg: #C6EFCE; --ok-text: #006100;
+  --ng-bg: #FFC7CE; --ng-text: #9C0006;
+  --tab-h: 64px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  font-size: 17px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+body { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 12px 16px 24px;
+  padding-top: calc(12px + env(safe-area-inset-top)); }
+h1 { font-size: 22px; margin: 4px 0 12px; }
+h2 { font-size: 18px; margin: 18px 0 8px; }
+.card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.muted { color: var(--sub); font-size: 14px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.grow { flex: 1; min-width: 0; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px;
+  padding: 0 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+  font-weight: 600; }
+.btn:active { filter: brightness(.92); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.danger { background: #fff; color: #C00000; border-color: #E6A3A3; }
+.btn.block { display: flex; width: 100%; }
+.btn.small { min-height: 40px; padding: 0 12px; font-size: 15px; border-radius: 10px; }
+.field { display: block; margin-bottom: 12px; }
+.field > span { display: block; font-size: 14px; color: var(--sub); margin-bottom: 4px; }
+.input { width: 100%; min-height: 52px; padding: 0 14px; border: 1px solid var(--line);
+  border-radius: 12px; background: #fff; font-size: 18px; }
+.input:focus { outline: 3px solid rgba(47,117,181,.35); border-color: var(--accent); }
+
+/* 読取画面 */
+.info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.info button { text-align: left; min-height: 64px; padding: 8px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: #FFF8E6; }
+.info button b { display: block; font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info button small { color: var(--sub); font-size: 13px; }
+.info button.empty b { color: #C00000; }
+.kubuns { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.kubun-btn { min-height: 64px; border-radius: 12px; border: 2px solid rgba(0,0,0,.12);
+  font-size: 20px; font-weight: 700; position: relative; padding: 4px 8px; }
+.kubun-btn small { display: block; font-size: 12px; font-weight: 400; color: var(--sub); }
+.kubun-btn.sel { border: 4px solid #1F2328; box-shadow: 0 0 0 2px #fff inset; }
+.kubun-btn.sel::after { content: "✓"; position: absolute; top: 2px; right: 8px; font-size: 18px; }
+.result { border-radius: 14px; padding: 14px 16px; font-size: 19px; font-weight: 700; min-height: 60px;
+  background: #E7E9EC; color: var(--sub); word-break: break-all; }
+.result.ok { background: var(--ok-bg); color: var(--ok-text); }
+.result.ng { background: var(--ng-bg); color: var(--ng-text); }
+.result small { display: block; font-size: 14px; font-weight: 400; }
+.flash { animation: flash .5s; }
+@keyframes flash { from { transform: scale(1.03); } to { transform: scale(1); } }
+.cam { position: relative; background: #000; border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 3; }
+.cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam .frame { position: absolute; left: 15%; top: 15%; width: 70%; height: 70%;
+  border: 3px solid rgba(255,255,255,.9); border-radius: 12px; box-shadow: 0 0 0 999px rgba(0,0,0,.25); }
+.cam .camMsg { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; color: #fff;
+  font-size: 15px; text-shadow: 0 1px 2px #000; }
+.scan-input { font-size: 20px; min-height: 60px; border: 3px solid var(--accent); background: #EEF5FC; }
+.scan-grid { display: grid; gap: 12px; }
+@media (min-width: 860px) {
+  .scan-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+
+/* 記録 */
+.rec { display: flex; gap: 10px; align-items: stretch; padding: 10px 12px; border-radius: 12px;
+  margin-bottom: 8px; border: 1px solid rgba(0,0,0,.08); background: #fff; width: 100%; text-align: left; }
+.rec .no { font-size: 13px; color: var(--sub); min-width: 38px; }
+.rec .main { flex: 1; min-width: 0; }
+.rec .hin { font-size: 19px; font-weight: 700; word-break: break-all; }
+.rec .qty { font-size: 22px; font-weight: 700; white-space: nowrap; align-self: center; }
+.rec .meta { font-size: 13px; color: var(--sub); }
+.rec.err { background: var(--ng-bg) !important; }
+.rec .errmsg { color: var(--ng-text); font-size: 14px; font-weight: 600; }
+.tag { display: inline-block; font-size: 13px; padding: 1px 8px; border-radius: 999px; background: rgba(0,0,0,.08); margin-right: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.chip { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 15px; }
+.chip.sel { background: var(--head); color: #fff; border-color: var(--head); }
+
+/* 集計 */
+table.sum { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.sum th { background: var(--head); color: #fff; font-weight: 600; padding: 8px 6px; text-align: left; font-size: 14px; }
+table.sum td { padding: 10px 6px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: break-all; }
+table.sum td.num { text-align: right; white-space: nowrap; font-weight: 700; }
+table.sum tr.sub td { font-size: 14px; color: var(--sub); background: #fff; padding-top: 6px; padding-bottom: 6px; }
+table.sum tr.sub td.num { font-weight: 400; }
+.kubun-head td { font-weight: 700; font-size: 17px; }
+
+/* 設定 */
+.kb-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.kb-item .kb-name { display: block; font-size: 19px; overflow-wrap: anywhere; }
+.btn:disabled { opacity: .35; }
+.tokens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.swatch { width: 40px; height: 40px; border-radius: 10px; border: 2px solid rgba(0,0,0,.15); }
+.swatch.sel { border: 4px solid #1F2328; }
+.warn { color: var(--ng-text); font-size: 14px; font-weight: 600; margin-top: 4px; }
+
+/* タブ */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: #fff;
+  border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
+.tabs button { flex: 1; height: var(--tab-h); border: 0; background: none; font-size: 13px; color: var(--sub); }
+.tabs button b { display: block; font-size: 22px; line-height: 1.1; }
+.tabs button.sel { color: var(--accent); font-weight: 700; }
+
+/* モーダル */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; display: flex;
+  align-items: flex-end; justify-content: center; }
+.modal { background: var(--bg); width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto;
+  border-radius: 18px 18px 0 0; padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+@media (min-width: 700px) { .modal-bg { align-items: center; } .modal { border-radius: 18px; } }
+.banner { background: #FFF2CC; border: 1px solid #E5C76B; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 15px; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-tab="scan"><b>▣</b>読取</button>
+  <button data-tab="list"><b>☰</b>記録</button>
+  <button data-tab="sum"><b>Σ</b>集計</button>
+  <button data-tab="set"><b>⚙</b>設定</button>
+</nav>
+<div id="modalRoot"></div>
+<script src="jsQR.js"></script>
+<script>
+"use strict";
+/* 棚卸ツール（iPhone・iPad・iPod touch・Android 版。iPhone 系は Safari、Android は Chrome で使う）
+   Excel の 棚卸ツール.xlsm と同じ考え方：
+   ・選んだ区分の「QRの中身」（納品番号／品番／数量／読まない の並び）にQRを当てはめる
+   ・項目数が合わない・数量が数字でないQRは NG（記録しない）
+   ・記録は端末の中（localStorage）にだけ保存し、ネットには送らない
+   ・CSV（Excel の読取シートと同じ列＋端末名・ID）で書き出す */
+
+var APP_VERSION = "1.0.2";
+var IS_ANDROID = /Android/i.test(navigator.userAgent);
+var IS_WINDOWS = /Windows/i.test(navigator.userAgent);
+var LS_SET = "tana.settings.v1";
+var LS_REC = "tana.records.v1";
+var TOKENS = ["納品番号", "品番", "数量", "読まない"];
+var PALETTE = ["#DDEBF7", "#FCE4D6", "#E2EFDA", "#FFF2CC", "#EDE2F6", "#D9F2F2", "#F8D7E8", "#E7E6E6", "#FFFFFF"];
+var DEFAULT_KUBUN = [
+  { name: "押出", fmt: "品番,数量", color: "#DDEBF7", memo: "QR：品番,梱包枚数" },
+  { name: "仕掛品", fmt: "品番,数量", color: "#FCE4D6", memo: "QR：NC品番,入数" },
+  { name: "完成品", fmt: "納品番号,品番,数量", color: "#E2EFDA", memo: "QR：納品番号,品番,入数" }
+];
+var CSV_HEAD = ["No.", "日時", "担当者", "置き場所", "区分", "納品番号", "品番", "数量", "入力", "読んだ内容", "エラー", "端末名", "ID"];
+
+var S = null;        // 設定
+var R = [];          // 記録
+var tab = "scan";
+var saveError = "";
+var listFilter = "";
+var lastResult = null;
+
+/* ---------------- 保存 ---------------- */
+function loadAll() {
+  S = null; R = [];
+  try { S = JSON.parse(localStorage.getItem(LS_SET) || "null"); } catch (e) { S = null; }
+  try { R = JSON.parse(localStorage.getItem(LS_REC) || "[]") || []; } catch (e) { R = []; }
+  if (!S || typeof S !== "object") S = {};
+  if (!Array.isArray(S.kubun) || !S.kubun.length) S.kubun = JSON.parse(JSON.stringify(DEFAULT_KUBUN));
+  if (typeof S.tanto !== "string") S.tanto = "";
+  if (typeof S.basho !== "string") S.basho = "";
+  if (typeof S.device !== "string") S.device = "";
+  if (typeof S.kubunSel !== "string") S.kubunSel = S.kubun[0].name;
+  if (typeof S.seq !== "number") S.seq = 0;
+  if (typeof S.sound !== "boolean") S.sound = true;
+  if (typeof S.camId !== "string") S.camId = "";
+  if (!Array.isArray(S.places)) S.places = [];
+  if (!Array.isArray(S.tantos)) S.tantos = [];
+  if (!Array.isArray(R)) R = [];
+}
+function saveAll() {
+  try {
+    localStorage.setItem(LS_SET, JSON.stringify(S));
+    localStorage.setItem(LS_REC, JSON.stringify(R));
+    saveError = "";
+  } catch (e) {
+    saveError = "端末に保存できませんでした（" + e.message + "）。すぐに「記録をCSVで書き出す」をしてください。";
+  }
+}
+
+/* ---------------- 共通 ---------------- */
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function pad(n, w) { n = String(n); while (n.length < (w || 2)) n = "0" + n; return n; }
+function nowText(d) {
+  d = d || new Date();
+  return d.getFullYear() + "/" + pad(d.getMonth() + 1) + "/" + pad(d.getDate()) + " " +
+    pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+function stamp(d) {
+  d = d || new Date();
+  return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+}
+// 改行・タブを取り、全角の英数字・記号を半角にする（「、」はカンマとみなす）
+function cleanText(s) {
+  s = String(s == null ? "" : s).replace(/[\r\n\t]/g, "");
+  var out = "";
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    if (c >= 0xFF01 && c <= 0xFF5E) out += String.fromCharCode(c - 0xFEE0);
+    else if (c === 0x3000) out += " ";
+    else if (c === 0x3001) out += ",";
+    else out += s.charAt(i);
+  }
+  return out.trim();
+}
+function normalizeFormat(s) {
+  s = cleanText(s);
+  if (!s) return "";
+  return s.split(",").map(function (t) { return t.trim(); }).join(",");
+}
+function formatError(fmt) {
+  if (!fmt) return "QRの中身が空です";
+  var t = fmt.split(","), nN = 0, nH = 0, nQ = 0;
+  for (var i = 0; i < t.length; i++) {
+    if (t[i] === "納品番号") nN++;
+    else if (t[i] === "品番") nH++;
+    else if (t[i] === "数量") nQ++;
+    else if (t[i] !== "読まない") return "「" + t[i] + "」は使えません。納品番号・品番・数量・読まない のどれかにしてください";
+  }
+  if (nH !== 1 || nQ !== 1) return "品番と数量を1つずつ入れてください";
+  if (nN > 1) return "納品番号は1つだけにしてください";
+  return "";
+}
+function kubunIndex(name) {
+  for (var i = 0; i < S.kubun.length; i++) if (S.kubun[i].name === name) return i;
+  return -1;
+}
+function kubunColor(name) { var k = kubunIndex(name); return k < 0 ? "#FFFFFF" : (S.kubun[k].color || "#FFFFFF"); }
+function hasNohin(name) {
+  var k = kubunIndex(name);
+  return k >= 0 && ("," + S.kubun[k].fmt + ",").indexOf(",納品番号,") >= 0;
+}
+function isQty(s) { return /^[0-9]{1,9}$/.test(String(s).trim()); }
+function checkRow(kubun, hinban, qty) {
+  if (kubunIndex(kubun) < 0) return kubun ? "区分「" + kubun + "」は区分設定にありません" : "区分が空です";
+  if (!hinban) return "品番が空です";
+  if (!isQty(qty)) return "数量が数字ではありません";
+  return "";
+}
+function recError(r) { return checkRow(r.kubun, r.hinban, r.qty); }
+function newId() {
+  return (S.device || "dev") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
+function addRecent(list, v) {
+  if (!v) return;
+  var i = list.indexOf(v);
+  if (i >= 0) list.splice(i, 1);
+  list.unshift(v);
+  if (list.length > 12) list.length = 12;
+}
+
+/* ---------------- 音 ---------------- */
+var audioCtx = null;
+function unlockAudio() {
+  if (audioCtx) return;
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
+  } catch (e) { audioCtx = null; }
+}
+function beep(ok) {
+  if (!S.sound || !audioCtx) return;
+  try {
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    var seq = ok ? [[1320, 0, 0.09]] : [[330, 0, 0.18], [260, 0.22, 0.3]];
+    seq.forEach(function (p) {
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = ok ? "sine" : "square"; o.frequency.value = p[0];
+      g.gain.value = ok ? 0.25 : 0.12;
+      o.connect(g); g.connect(audioCtx.destination);
+      var t = audioCtx.currentTime + p[1];
+      o.start(t); o.stop(t + p[2]);
+    });
+  } catch (e) { }
+  if (navigator.vibrate) { try { navigator.vibrate(ok ? 60 : [120, 80, 120]); } catch (e) { } }
+}
+document.addEventListener("touchend", unlockAudio, { passive: true });
+document.addEventListener("click", unlockAudio);
+
+/* ---------------- QRの読み取り ---------------- */
+function processScan(raw, source) {
+  raw = cleanText(raw);
+  if (!raw) return;
+  var res = scanToRecord(raw);
+  if (res.msg) {
+    lastResult = { ok: false, text: "NG　" + res.msg, sub: "記録していません　読んだ内容：" + raw };
+    beep(false);
+  } else {
+    R.push(res.rec);
+    addRecent(S.places, S.basho);
+    saveAll();
+    lastResult = { ok: true, text: "OK　No." + res.rec.no + "　" + res.rec.kubun + "　" + res.rec.hinban + "　" + res.rec.qty,
+      sub: (res.rec.nohin ? "納品番号 " + res.rec.nohin + "　" : "") + (source === "camera" ? "カメラ" : "スキャナ") };
+    beep(true);
+  }
+  showResult(true);
+  renderRecent();
+}
+// QRの文字を、選んでいる区分の「QRの中身」に当てはめる。NGなら msg を返す
+function scanToRecord(raw) {
+  if (!S.tanto.trim()) return { msg: "担当者を入れてから読んでください" };
+  var kubun = S.kubunSel, k = kubunIndex(kubun);
+  if (k < 0) return { msg: "区分を選んでください" };
+  var fmt = normalizeFormat(S.kubun[k].fmt), fe = formatError(fmt);
+  if (fe) return { msg: "区分設定の「" + kubun + "」の QRの中身 が正しくありません（" + fe + "）" };
+  var parts = raw.split(",").map(function (p) { return p.trim(); });
+  var toks = fmt.split(",");
+  if (parts.length !== toks.length) {
+    var hint = S.kubun.filter(function (x, i) {
+      var f = normalizeFormat(x.fmt);
+      return i !== k && !formatError(f) && f.split(",").length === parts.length;
+    }).map(function (x) { return x.name; });
+    return { msg: "「" + kubun + "」のQRは " + toks.length + " 項目ですが、読んだQRは " + parts.length + " 項目です" +
+      (hint.length ? "。区分を「" + hint.join("」か「") + "」にしてから読み直してください" : "") };
+  }
+  var rec = { nohin: "", hinban: "", qty: "" };
+  toks.forEach(function (t, i) {
+    if (t === "納品番号") rec.nohin = parts[i];
+    else if (t === "品番") rec.hinban = parts[i];
+    else if (t === "数量") rec.qty = parts[i];
+  });
+  var msg = checkRow(kubun, rec.hinban, rec.qty);
+  if (msg) return { msg: msg };
+  S.seq += 1;
+  return { rec: {
+    id: newId(), no: S.seq, t: nowText(), tanto: S.tanto.trim(), basho: S.basho.trim(), kubun: kubun,
+    nohin: rec.nohin, hinban: rec.hinban, qty: String(parseInt(rec.qty, 10)), method: "QR", raw: raw, device: S.device.trim()
+  } };
+}
+
+/* カメラ */
+var cam = { stream: null, video: null, canvas: null, ctx: null, timer: 0, lastText: "", lastSeen: 0, devices: [], autoTried: false };
+// カメラの名前で、背面（画面と反対側）か前面かを見分ける（Windows タブレットは向きを教えてくれないことが多いため）
+var REAR_RE = /back|rear|environment|world|背面|リア|外側/i;
+function cameraConstraints() {
+  var v = { width: { ideal: 1280 }, height: { ideal: 720 } };
+  if (S.camId) v.deviceId = { exact: S.camId };      // 前に選んだカメラ
+  else v.facingMode = { ideal: "environment" };      // 背面をお願いする（iPhone・Android はこれで背面になる）
+  return { video: v, audio: false };
+}
+function startCamera() {
+  if (cam.stream) return;
+  var msgEl = document.getElementById("camMsg");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("この画面ではカメラを使えません。\nホーム画面のアイコンから開いているか、https の住所で開いているかを確かめてください。");
+    return;
+  }
+  document.getElementById("camBox").classList.remove("hidden");
+  document.getElementById("camBtn").textContent = "カメラを止める";
+  if (msgEl) msgEl.textContent = "カメラを準備しています…";
+  cam.autoTried = false;
+  openStream(cameraConstraints(), true);
+}
+function openStream(constraints, allowRetry) {
+  var msgEl = document.getElementById("camMsg");
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(function (stream) {
+      if (!document.getElementById("camBox") || document.getElementById("camBox").classList.contains("hidden")) {
+        stream.getTracks().forEach(function (t) { t.stop(); });   // 準備中に止められた
+        return;
+      }
+      cam.stream = stream;
+      cam.video = document.getElementById("video");
+      cam.video.setAttribute("playsinline", "");
+      cam.video.muted = true;
+      cam.video.srcObject = stream;
+      var p = cam.video.play(); if (p && p.catch) p.catch(function () { });
+      cam.canvas = cam.canvas || document.createElement("canvas");
+      cam.ctx = cam.canvas.getContext("2d", { willReadFrequently: true }) || cam.canvas.getContext("2d");
+      var label = trackLabel(stream);
+      listCameras(function () {
+        // まだカメラを選んでいなくて、2台以上あり、今のカメラが背面らしくなければ、背面らしいカメラに切り替える
+        if (!S.camId && !cam.autoTried && cam.devices.length > 1 && !REAR_RE.test(label)) {
+          cam.autoTried = true;
+          var rear = cam.devices.filter(function (d) { return REAR_RE.test(d.label); })[0];
+          if (rear) { switchCamera(rear.deviceId); return; }
+        }
+        updateCamUi(label);
+      });
+      clearTimeout(cam.timer);
+      cam.timer = setTimeout(camLoop, 300);
+    })
+    .catch(function (e) {
+      // 前に選んだカメラが無くなっていたら、選び直す
+      if (allowRetry && S.camId) { S.camId = ""; saveAll(); openStream(cameraConstraints(), false); return; }
+      stopCamera();
+      alert("カメラを使えませんでした（" + (e && e.name ? e.name : e) + "）。\n" + (IS_ANDROID ?
+        "Chrome のアドレス欄の左のマーク →「権限」→ カメラ を「許可」にしてください。\n（または 設定 → アプリ → Chrome → 権限 → カメラ）" :
+        IS_WINDOWS ?
+        "Edge のアドレス欄の左のマーク → カメラ を「許可」にしてください。\nまた、Windows の 設定 → プライバシーとセキュリティ → カメラ で、カメラへのアクセスを「オン」にしてください。" :
+        "設定 → アプリ → Safari → カメラ を「許可」にしてください。"));
+    });
+}
+function trackLabel(stream) {
+  var t = stream && stream.getVideoTracks()[0];
+  return t ? (t.label || "") : "";
+}
+function currentCameraId() {
+  var t = cam.stream && cam.stream.getVideoTracks()[0];
+  var s = t && t.getSettings ? t.getSettings() : {};
+  return s.deviceId || "";
+}
+function listCameras(cb) {
+  if (!navigator.mediaDevices.enumerateDevices) { cam.devices = []; cb(); return; }
+  navigator.mediaDevices.enumerateDevices().then(function (list) {
+    cam.devices = list.filter(function (d) { return d.kind === "videoinput"; });
+    cb();
+  }).catch(function () { cam.devices = []; cb(); });
+}
+// 指定したカメラに切り替えて、そのカメラを覚えておく
+function switchCamera(id) {
+  clearTimeout(cam.timer); cam.timer = 0;
+  if (cam.stream) cam.stream.getTracks().forEach(function (t) { t.stop(); });
+  cam.stream = null;
+  S.camId = id; saveAll();
+  var msgEl = document.getElementById("camMsg");
+  if (msgEl) msgEl.textContent = "カメラを切り替えています…";
+  openStream(cameraConstraints(), true);
+}
+// 「カメラを切り替え」ボタン：次のカメラへ
+function nextCamera() {
+  if (cam.devices.length < 2) return;
+  var cur = S.camId || currentCameraId(), i = -1;
+  cam.devices.forEach(function (d, k) { if (d.deviceId === cur) i = k; });
+  switchCamera(cam.devices[(i + 1) % cam.devices.length].deviceId);
+}
+function updateCamUi(label) {
+  var msgEl = document.getElementById("camMsg"), sw = document.getElementById("camSwitch");
+  if (msgEl) msgEl.textContent = "枠の中にQRを入れてください" + (label ? "（" + label.replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, "") + "）" : "");
+  if (sw) sw.classList.toggle("hidden", cam.devices.length < 2);
+}
+function stopCamera() {
+  clearTimeout(cam.timer); cam.timer = 0;
+  if (cam.stream) { cam.stream.getTracks().forEach(function (t) { t.stop(); }); }
+  cam.stream = null;
+  var box = document.getElementById("camBox"), btn = document.getElementById("camBtn");
+  if (box) box.classList.add("hidden");
+  if (btn) btn.textContent = "カメラで読む";
+}
+function camLoop() {
+  if (!cam.stream) return;
+  var v = cam.video;
+  try {
+    if (v && v.readyState >= 2 && v.videoWidth) {
+      // 中央の正方形だけを縮小して調べる（速さのため）
+      var side = Math.min(v.videoWidth, v.videoHeight) * 0.8;
+      var sx = (v.videoWidth - side) / 2, sy = (v.videoHeight - side) / 2;
+      var size = Math.min(560, Math.round(side));
+      cam.canvas.width = size; cam.canvas.height = size;
+      cam.ctx.drawImage(v, sx, sy, side, side, 0, 0, size, size);
+      var img = cam.ctx.getImageData(0, 0, size, size);
+      var code = jsQR(img.data, size, size, { inversionAttempts: "dontInvert" });
+      if (code) {
+        var text = decodeQr(code), now = Date.now();
+        // 同じQRを写し続けている間は、1回だけ記録する（いったん外せば同じQRでもまた読める）
+        if (text === cam.lastText && now - cam.lastSeen < 1500) {
+          cam.lastSeen = now;
+        } else {
+          cam.lastText = text; cam.lastSeen = now;
+          processScan(text, "camera");
+        }
+      }
+    }
+  } catch (e) { }
+  cam.timer = setTimeout(camLoop, 120);
+}
+// UTF-8 として読めなければ Shift-JIS として読む（Excel のQR作成ツールは Shift-JIS が既定）
+function decodeQr(code) {
+  try {
+    if (code.binaryData && code.binaryData.length && window.TextDecoder) {
+      var bytes = new Uint8Array(code.binaryData);
+      try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+      catch (e) { return new TextDecoder("shift_jis").decode(bytes); }
+    }
+  } catch (e) { }
+  return code.data || "";
+}
+document.addEventListener("visibilitychange", function () { if (document.hidden) stopCamera(); });
+
+/* ---------------- 画面：読取 ---------------- */
+function renderScan() {
+  var kb = S.kubun.map(function (k) {
+    var f = normalizeFormat(k.fmt), n = formatError(f) ? "?" : f.split(",").length;
+    return '<button class="kubun-btn' + (k.name === S.kubunSel ? " sel" : "") + '" style="background:' + esc(k.color) +
+      '" data-kubun="' + esc(k.name) + '">' + esc(k.name) + '<small>QR ' + n + '項目</small></button>';
+  }).join("");
+  return (saveError ? '<div class="banner">' + esc(saveError) + '</div>' : "") +
+    '<h1>棚卸 読み取り</h1>' +
+    '<div class="scan-grid"><div>' +
+    '<div class="card"><div class="info">' +
+    '<button id="btnTanto" class="' + (S.tanto ? "" : "empty") + '"><small>担当者</small><b>' + esc(S.tanto || "未入力（タップ）") + '</b></button>' +
+    '<button id="btnBasho"><small>置き場所</small><b>' + esc(S.basho || "（なし）") + '</b></button>' +
+    '</div></div>' +
+    '<div class="card"><div class="muted" style="margin-bottom:6px">区分（読む品物を選ぶ）</div><div class="kubuns">' + kb + '</div></div>' +
+    '<div id="result" class="result"></div>' +
+    '</div><div>' +
+    '<div class="card">' +
+    '<button id="camBtn" class="btn primary block" style="min-height:60px;font-size:19px">カメラで読む</button>' +
+    '<div id="camBox" class="hidden" style="margin-top:10px"><div class="cam"><video id="video" playsinline muted autoplay></video>' +
+    '<div class="frame"></div><div class="camMsg" id="camMsg"></div></div>' +
+    '<button id="camSwitch" class="btn small block hidden" style="margin-top:8px">⇄ カメラを切り替え（前面／背面）</button></div>' +
+    '<div style="margin-top:12px"><div class="muted">Bluetoothスキャナ（ここをタップしてから読む）</div>' +
+    '<input id="scanInput" class="input scan-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="タップしてスキャナで読む"></div>' +
+    '<button id="manualBtn" class="btn block" style="margin-top:12px">＋ 手入力で追加</button>' +
+    '</div>' +
+    '<div class="card"><div class="row"><b class="grow">最近の記録</b><span class="muted" id="recCount"></span></div><div id="recent" style="margin-top:8px"></div></div>' +
+    '</div></div>';
+}
+function bindScan() {
+  document.getElementById("btnTanto").onclick = function () { editPerson("tanto"); };
+  document.getElementById("btnBasho").onclick = function () { editPerson("basho"); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-kubun]"), function (b) {
+    b.onclick = function () {
+      S.kubunSel = b.getAttribute("data-kubun"); saveAll();
+      Array.prototype.forEach.call(document.querySelectorAll("[data-kubun]"), function (x) {
+        x.classList.toggle("sel", x === b);
+      });
+    };
+  });
+  document.getElementById("camBtn").onclick = function () { if (cam.stream || !document.getElementById("camBox").classList.contains("hidden")) stopCamera(); else startCamera(); };
+  document.getElementById("camSwitch").onclick = nextCamera;
+  var inp = document.getElementById("scanInput");
+  inp.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.keyCode === 13 || e.key === "Tab") {
+      e.preventDefault();
+      var v = inp.value; inp.value = "";
+      processScan(v, "scanner");
+    }
+  });
+  document.getElementById("manualBtn").onclick = function () { editRecord(null); };
+  showResult(false);
+  renderRecent();
+}
+function showResult(flash) {
+  var el = document.getElementById("result");
+  if (!el) return;
+  if (!lastResult) {
+    el.className = "result";
+    el.innerHTML = S.tanto ? "区分を選んで、QRを読んでください" : "まず担当者を入れてください";
+    return;
+  }
+  el.className = "result " + (lastResult.ok ? "ok" : "ng");
+  el.innerHTML = esc(lastResult.text) + "<small>" + esc(lastResult.sub) + "</small>";
+  if (flash) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+}
+function renderRecent() {
+  var el = document.getElementById("recent");
+  if (!el) return;
+  var list = R.slice(-3).reverse();
+  el.innerHTML = list.length ? list.map(recHtml).join("") : '<div class="muted">まだありません</div>';
+  bindRecButtons(el);
+  var c = document.getElementById("recCount"); if (c) c.textContent = R.length + "件";
+}
+function editPerson(key) {
+  var label = key === "tanto" ? "担当者" : "置き場所";
+  var recent = key === "tanto" ? S.tantos : S.places;
+  openModal('<h2 style="margin-top:0">' + label + '</h2>' +
+    '<input id="pv" class="input" type="text" autocomplete="off" value="' + esc(S[key]) + '" placeholder="' + label + 'を入力">' +
+    (recent.length ? '<div class="muted" style="margin-top:10px">最近使ったもの</div><div class="chips">' +
+      recent.map(function (v) { return '<button class="chip" data-v="' + esc(v) + '">' + esc(v) + '</button>'; }).join("") + '</div>' : "") +
+    (key === "basho" ? '<div class="muted">棚・エリアなど。場所が変わったら書き換えてから読みます。</div>' : "") +
+    '<div class="row" style="margin-top:14px"><button class="btn grow" id="pc">やめる</button><button class="btn primary grow" id="po">決定</button></div>',
+    function (m) {
+      var inp = m.querySelector("#pv");
+      Array.prototype.forEach.call(m.querySelectorAll("[data-v]"), function (b) {
+        b.onclick = function () { inp.value = b.getAttribute("data-v"); };
+      });
+      m.querySelector("#pc").onclick = closeModal;
+      m.querySelector("#po").onclick = function () {
+        S[key] = inp.value.trim();
+        addRecent(recent, S[key]);
+        saveAll(); closeModal(); render();
+      };
+      setTimeout(function () { inp.focus(); }, 50);
+    });
+}
+
+/* ---------------- 記録の表示・修正 ---------------- */
+function recHtml(r) {
+  var err = recError(r);
+  return '<button class="rec' + (err ? " err" : "") + '" style="background:' + esc(kubunColor(r.kubun)) + '" data-id="' + esc(r.id) + '">' +
+    '<div class="no">No.' + esc(r.no) + '</div>' +
+    '<div class="main"><div><span class="tag">' + esc(r.kubun) + '</span>' + (r.method === "手入力" ? '<span class="tag">手入力</span>' : "") + '</div>' +
+    '<div class="hin">' + esc(r.hinban || "（品番なし）") + '</div>' +
+    (r.nohin ? '<div class="meta">納品番号 ' + esc(r.nohin) + '</div>' : "") +
+    '<div class="meta">' + esc(r.t) + '　' + esc(r.basho || "") + '　' + esc(r.tanto || "") + (r.device ? '　[' + esc(r.device) + ']' : "") + '</div>' +
+    (err ? '<div class="errmsg">' + esc(err) + '</div>' : "") + '</div>' +
+    '<div class="qty">' + esc(r.qty) + '</div></button>';
+}
+function bindRecButtons(root) {
+  Array.prototype.forEach.call(root.querySelectorAll("[data-id]"), function (b) {
+    b.onclick = function () { editRecord(b.getAttribute("data-id")); };
+  });
+}
+function findRec(id) { for (var i = 0; i < R.length; i++) if (R[i].id === id) return i; return -1; }
+
+// id が null なら手入力で新しく追加
+function editRecord(id) {
+  var idx = id ? findRec(id) : -1;
+  var r = idx >= 0 ? R[idx] : { kubun: S.kubunSel, nohin: "", hinban: "", qty: "", basho: S.basho };
+  var isNew = idx < 0;
+  var kb = S.kubun.map(function (k) {
+    return '<button class="chip' + (k.name === r.kubun ? " sel" : "") + '" data-k="' + esc(k.name) + '">' + esc(k.name) + '</button>';
+  }).join("");
+  if (!isNew && kubunIndex(r.kubun) < 0) kb += '<button class="chip sel" data-k="' + esc(r.kubun) + '">' + esc(r.kubun) + '（設定にない）</button>';
+  openModal('<h2 style="margin-top:0">' + (isNew ? "手入力で追加" : "No." + esc(r.no) + " を直す") + '</h2>' +
+    (isNew ? "" : '<div class="muted" style="margin-bottom:8px">' + esc(r.t) + '　' + esc(r.method) + (r.raw ? '　読んだ内容：' + esc(r.raw) : "") + '</div>') +
+    '<div class="field"><span>区分</span><div class="chips" id="ek">' + kb + '</div></div>' +
+    '<label class="field"><span>納品番号（ある区分だけ）</span><input id="en" class="input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" value="' + esc(r.nohin) + '"></label>' +
+    '<label class="field"><span>品番</span><input id="eh" class="input" type="text" autocomplete="off" autocapitalize="characters" autocorrect="off" value="' + esc(r.hinban) + '"></label>' +
+    '<label class="field"><span>数量</span><input id="eq" class="input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="' + esc(r.qty) + '"></label>' +
+    '<label class="field"><span>置き場所</span><input id="eb" class="input" type="text" autocomplete="off" value="' + esc(r.basho) + '"></label>' +
+    '<div id="ee" class="warn"></div>' +
+    '<div class="row" style="margin-top:10px"><button class="btn grow" id="ec">やめる</button><button class="btn primary grow" id="eo">' + (isNew ? "追加" : "保存") + '</button></div>' +
+    (isNew ? "" : '<button class="btn danger block" id="ed" style="margin-top:14px">この記録を取り消す（消す）</button>'),
+    function (m) {
+      var sel = r.kubun;
+      Array.prototype.forEach.call(m.querySelectorAll("[data-k]"), function (b) {
+        b.onclick = function () {
+          sel = b.getAttribute("data-k");
+          Array.prototype.forEach.call(m.querySelectorAll("[data-k]"), function (x) { x.classList.toggle("sel", x === b); });
+        };
+      });
+      m.querySelector("#ec").onclick = closeModal;
+      m.querySelector("#eo").onclick = function () {
+        var nohin = cleanText(m.querySelector("#en").value), hinban = cleanText(m.querySelector("#eh").value);
+        var qty = cleanText(m.querySelector("#eq").value), basho = m.querySelector("#eb").value.trim();
+        var err = checkRow(sel, hinban, qty);
+        if (err) { m.querySelector("#ee").textContent = err; return; }
+        if (isNew) {
+          if (!S.tanto.trim()) { m.querySelector("#ee").textContent = "先に読取画面で担当者を入れてください"; return; }
+          S.seq += 1;
+          R.push({ id: newId(), no: S.seq, t: nowText(), tanto: S.tanto.trim(), basho: basho, kubun: sel, nohin: nohin,
+            hinban: hinban, qty: String(parseInt(qty, 10)), method: "手入力", raw: "", device: S.device.trim() });
+          lastResult = { ok: true, text: "OK　No." + S.seq + "　" + sel + "　" + hinban + "　" + parseInt(qty, 10), sub: "手入力" };
+        } else {
+          r.kubun = sel; r.nohin = nohin; r.hinban = hinban; r.qty = String(parseInt(qty, 10)); r.basho = basho;
+        }
+        saveAll(); closeModal(); render();
+      };
+      var del = m.querySelector("#ed");
+      if (del) del.onclick = function () {
+        if (!confirm("No." + r.no + "（" + r.hinban + "　" + r.qty + "）を取り消しますか？")) return;
+        R.splice(findRec(r.id), 1);
+        lastResult = { ok: true, text: "No." + r.no + " を取り消しました", sub: "" };
+        saveAll(); closeModal(); render();
+      };
+    });
+}
+
+/* ---------------- 画面：記録 ---------------- */
+function renderList() {
+  var nErr = R.filter(function (r) { return recError(r); }).length;
+  var chips = '<button class="chip' + (listFilter === "" ? " sel" : "") + '" data-f="">すべて</button>' +
+    (nErr ? '<button class="chip' + (listFilter === "!err" ? " sel" : "") + '" data-f="!err">エラー ' + nErr + '</button>' : "") +
+    S.kubun.map(function (k) {
+      return '<button class="chip' + (listFilter === k.name ? " sel" : "") + '" data-f="' + esc(k.name) + '">' + esc(k.name) + '</button>';
+    }).join("");
+  return '<h1>記録（' + R.length + '件）</h1>' +
+    '<div class="muted">行をタップすると、直したり取り消したりできます。新しい記録が上です。</div>' +
+    '<div class="chips">' + chips + '</div>' +
+    '<input id="q" class="input" type="search" placeholder="品番・納品番号でさがす" autocomplete="off" autocapitalize="off" autocorrect="off" style="margin-bottom:10px">' +
+    '<button id="manualBtn2" class="btn block" style="margin-bottom:12px">＋ 手入力で追加</button>' +
+    '<div id="listBody"></div>';
+}
+function bindList() {
+  Array.prototype.forEach.call(document.querySelectorAll("[data-f]"), function (b) {
+    b.onclick = function () { listFilter = b.getAttribute("data-f"); render(); };
+  });
+  var q = document.getElementById("q");
+  q.oninput = drawList;
+  document.getElementById("manualBtn2").onclick = function () { editRecord(null); };
+  drawList();
+}
+function drawList() {
+  var q = cleanText(document.getElementById("q").value).toUpperCase();
+  var list = R.filter(function (r) {
+    if (listFilter === "!err" && !recError(r)) return false;
+    if (listFilter && listFilter !== "!err" && r.kubun !== listFilter) return false;
+    if (q && (String(r.hinban).toUpperCase().indexOf(q) < 0 && String(r.nohin).toUpperCase().indexOf(q) < 0)) return false;
+    return true;
+  }).reverse();
+  var shown = list.slice(0, 300);
+  var el = document.getElementById("listBody");
+  el.innerHTML = shown.length ? shown.map(recHtml).join("") +
+    (list.length > shown.length ? '<div class="muted">ほか ' + (list.length - shown.length) + ' 件（さがす欄でしぼってください）</div>' : "")
+    : '<div class="muted">記録がありません</div>';
+  bindRecButtons(el);
+}
+
+/* ---------------- 集計 ---------------- */
+function buildSummary() {
+  var main = {}, sub = {}, nErr = 0, nRec = 0;
+  R.forEach(function (r) {
+    if (recError(r)) { nErr++; return; }
+    nRec++;
+    var k = kubunIndex(r.kubun), order = pad(k, 3);
+    var key = order + "\t" + r.kubun + "\t" + r.hinban;
+    var m = main[key] || (main[key] = { kubun: r.kubun, hinban: r.hinban, sum: 0, cnt: 0, places: [] });
+    m.sum += parseInt(r.qty, 10); m.cnt++;
+    if (r.basho && m.places.indexOf(r.basho) < 0) m.places.push(r.basho);
+    if (hasNohin(r.kubun)) {
+      var nohin = r.nohin || "（納品番号なし）";
+      var sk = key + "\t" + nohin;
+      var s = sub[sk] || (sub[sk] = { key: key, nohin: nohin, sum: 0, cnt: 0, places: [] });
+      s.sum += parseInt(r.qty, 10); s.cnt++;
+      if (r.basho && s.places.indexOf(r.basho) < 0) s.places.push(r.basho);
+    }
+  });
+  var keys = Object.keys(main).sort(cmp), subKeys = Object.keys(sub).sort(cmp);
+  var rows = keys.map(function (key, i) {
+    var m = main[key];
+    m.no = i + 1;
+    m.subs = subKeys.filter(function (sk) { return sub[sk].key === key; }).map(function (sk) { return sub[sk]; });
+    return m;
+  });
+  return { rows: rows, nErr: nErr, nRec: nRec };
+}
+function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+function fmtNum(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+function renderSum() {
+  var s = buildSummary(), html = "", lastKubun = null;
+  s.rows.forEach(function (m) {
+    if (m.kubun !== lastKubun) {
+      lastKubun = m.kubun;
+      html += '<tr class="kubun-head"><td colspan="4" style="background:' + esc(kubunColor(m.kubun)) + '">' + esc(m.kubun) + '</td></tr>';
+    }
+    html += '<tr style="background:' + esc(kubunColor(m.kubun)) + '"><td><b>' + esc(m.hinban) + '</b><div class="muted">' + esc(m.places.join("、")) + '</div></td>' +
+      '<td class="num">' + fmtNum(m.sum) + '</td><td class="num">' + m.cnt + '</td></tr>';
+    m.subs.forEach(function (x) {
+      html += '<tr class="sub"><td>└ 納品番号 ' + esc(x.nohin) + '</td><td class="num">' + fmtNum(x.sum) + '</td><td class="num">' + x.cnt + '</td></tr>';
+    });
+  });
+  return '<h1>集計（品番ごと）</h1>' +
+    '<div class="card"><div>品番数 <b>' + s.rows.length + '</b>　記録 <b>' + s.nRec + '</b> 件</div>' +
+    (s.nErr ? '<div class="warn">エラーの記録が ' + s.nErr + ' 件あります（集計に入っていません）。記録画面の「エラー」で直してください。</div>' : "") +
+    '<div class="muted">納品番号のある区分は、品番の下に納品番号ごとの内訳を出しています。</div></div>' +
+    (s.rows.length ? '<div class="card" style="padding:0;overflow:hidden"><table class="sum"><thead><tr><th>品番／置き場所</th><th style="text-align:right">合計数量</th><th style="text-align:right">回数</th></tr></thead><tbody>' +
+      html + '</tbody></table></div>' : '<div class="muted">データがありません</div>') +
+    '<button id="expSum" class="btn primary block">集計をCSVで書き出す</button>';
+}
+function bindSum() { document.getElementById("expSum").onclick = exportSummary; }
+
+/* ---------------- CSV 書き出し・取り込み ---------------- */
+function csvCell(v) {
+  v = String(v == null ? "" : v);
+  return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+function toCsv(rows) { return "﻿" + rows.map(function (r) { return r.map(csvCell).join(","); }).join("\r\n") + "\r\n"; }
+function deviceName() { return (S.device || "端末").replace(/[\\\/:*?"<>|\s]/g, "_"); }
+function exportRecords() {
+  if (!R.length) { alert("記録がありません。"); return; }
+  var rows = [CSV_HEAD].concat(R.map(function (r) {
+    return [r.no, r.t, r.tanto, r.basho, r.kubun, r.nohin, r.hinban, r.qty, r.method, r.raw, recError(r), r.device, r.id];
+  }));
+  shareFile("棚卸記録_" + deviceName() + "_" + stamp() + ".csv", toCsv(rows), "text/csv");
+}
+function exportSummary() {
+  var s = buildSummary();
+  if (!s.rows.length) { alert("集計するデータがありません。"); return; }
+  var rows = [["No.", "区分", "品番", "納品番号（内訳）", "合計数量", "読んだ回数", "置き場所"]];
+  s.rows.forEach(function (m) {
+    rows.push([m.no, m.kubun, m.hinban, "", m.sum, m.cnt, m.places.join("、")]);
+    m.subs.forEach(function (x) { rows.push(["", m.kubun, m.hinban, x.nohin, x.sum, x.cnt, x.places.join("、")]); });
+  });
+  shareFile("棚卸集計_" + deviceName() + "_" + stamp() + ".csv", toCsv(rows), "text/csv");
+}
+// 共有シート（AirDrop・メール・「ファイル」に保存）で渡す。使えなければダウンロード
+function shareFile(name, text, type) {
+  var blob = new Blob([text], { type: type });
+  var file = null;
+  try { file = new File([blob], name, { type: type }); } catch (e) { file = null; }
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: name }).catch(function (e) {
+      if (e && e.name !== "AbortError") downloadBlob(name, blob);
+    });
+  } else {
+    downloadBlob(name, blob);
+  }
+}
+function downloadBlob(name, blob) {
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
+function readTextFile(file, cb) {
+  var fr = new FileReader();
+  fr.onload = function () {
+    var bytes = new Uint8Array(fr.result), text;
+    try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+    catch (e) { try { text = new TextDecoder("shift_jis").decode(bytes); } catch (e2) { text = ""; } }
+    cb(text.replace(/^﻿/, ""));
+  };
+  fr.readAsArrayBuffer(file);
+}
+function parseCsv(text) {
+  var rows = [], row = [], cell = "", q = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text.charAt(i);
+    if (q) {
+      if (c === '"') { if (text.charAt(i + 1) === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text.charAt(i + 1) === "\n") i++;
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(function (r) { return r.some(function (x) { return x !== ""; }); });
+}
+// ほかの端末の記録CSVを取り込む（ID が同じ記録は二重に入れない）
+function importRecordsCsv(text) {
+  var rows = parseCsv(text);
+  if (!rows.length) return { error: "中身がありません" };
+  var h = rows[0].map(function (x) { return x.trim(); });
+  var col = function (name) { return h.indexOf(name); };
+  if (col("品番") < 0 || col("数量") < 0 || col("区分") < 0) return { error: "棚卸記録のCSVではありません（品番・数量・区分の列がありません）" };
+  // ID がある記録は ID だけで見分ける（同じ秒に同じQRを2回読んだ記録も別々に入れるため）。
+  // ID が無い CSV（Excel で作ったものなど）だけ、中身が全部同じなら同じ記録とみなす
+  var haveId = {}, haveSig = {};
+  R.forEach(function (r) { haveId[r.id] = true; haveSig[sig(r)] = true; });
+  var added = 0, skipped = 0;
+  rows.slice(1).forEach(function (c) {
+    var g = function (name) { var i = col(name); return i >= 0 && i < c.length ? c[i].trim() : ""; };
+    var r = { id: g("ID"), no: g("No.") || g("No"), t: g("日時"), tanto: g("担当者"), basho: g("置き場所"), kubun: g("区分"),
+      nohin: g("納品番号"), hinban: g("品番"), qty: cleanText(g("数量")).replace(/,/g, ""), method: g("入力") || "取込", raw: g("読んだ内容"),
+      device: g("端末名") || "取込" };
+    if (!r.hinban && !r.kubun) return;
+    if (r.id) {
+      if (haveId[r.id]) { skipped++; return; }
+    } else {
+      if (haveSig[sig(r)]) { skipped++; return; }
+      r.id = "imp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    haveId[r.id] = true;   // haveSig は取り込む前の記録だけ（同じファイルの中の同じ行は両方入れる）
+    R.push(r); added++;
+  });
+  return { added: added, skipped: skipped };
+}
+function sig(r) { return [r.t, r.device, r.kubun, r.nohin, r.hinban, r.qty, r.raw].join("|"); }
+function pickFile(accept, cb) {
+  var inp = document.createElement("input");
+  inp.type = "file"; inp.accept = accept;
+  inp.onchange = function () { if (inp.files && inp.files[0]) cb(inp.files[0]); };
+  inp.click();
+}
+
+/* ---------------- 画面：設定 ---------------- */
+function renderSet() {
+  var items = S.kubun.map(function (k, i) {
+    var f = normalizeFormat(k.fmt), fe = formatError(f);
+    return '<div class="kb-item" style="background:' + esc(k.color) + '22">' +
+      '<b class="kb-name">' + (i + 1) + '. ' + esc(k.name) + '</b>' +
+      '<div class="muted">QRの中身：' + esc(f || "（空）") + (k.memo ? '　／　' + esc(k.memo) : "") + '</div>' +
+      (fe ? '<div class="warn">' + esc(fe) + '</div>' : "") +
+      '<div class="row" style="margin-top:8px"><span class="swatch" style="background:' + esc(k.color) + ';width:28px;height:28px"></span>' +
+      '<span class="muted grow">色</span>' +
+      '<button class="btn small" data-up="' + i + '"' + (i === 0 ? " disabled" : "") + '>↑</button>' +
+      '<button class="btn small" data-down="' + i + '"' + (i === S.kubun.length - 1 ? " disabled" : "") + '>↓</button>' +
+      '<button class="btn small" data-edit="' + i + '">変える</button></div>' +
+      '</div>';
+  }).join("");
+  return '<h1>設定</h1>' +
+    '<div class="card"><h2 style="margin-top:0">この端末</h2>' +
+    '<label class="field"><span>端末名（何台かで棚卸するとき、どの端末の記録かを見分けます）</span>' +
+    '<input id="dev" class="input" type="text" autocomplete="off" placeholder="例：iPad-1、Android-1" value="' + esc(S.device) + '"></label>' +
+    '<label class="row" style="min-height:44px"><input id="snd" type="checkbox" style="width:26px;height:26px"' + (S.sound ? " checked" : "") + '> <span>読んだときに音を出す</span></label>' +
+    '</div>' +
+    '<div class="card"><h2 style="margin-top:0">区分設定</h2>' +
+    '<div class="muted" style="margin-bottom:8px">区分を増やしたり、名前・QRの中身・色を変えたりできます。並び順は集計の順番です。</div>' +
+    items +
+    '<button id="kbAdd" class="btn block">＋ 区分を増やす</button></div>' +
+    '<div class="card"><h2 style="margin-top:0">データ</h2>' +
+    '<button id="expRec" class="btn primary block" style="margin-bottom:10px">記録をCSVで書き出す（パソコンへ送る）</button>' +
+    '<button id="expSum2" class="btn block" style="margin-bottom:10px">集計をCSVで書き出す</button>' +
+    '<button id="impRec" class="btn block" style="margin-bottom:10px">ほかの端末の記録を取り込む（CSV）</button>' +
+    '<button id="expSet" class="btn block" style="margin-bottom:10px">区分設定を書き出す（ほかの端末にそろえる）</button>' +
+    '<button id="impSet" class="btn block" style="margin-bottom:10px">区分設定を取り込む</button>' +
+    '<button id="clr" class="btn danger block">記録を全部消す（新しい棚卸）</button>' +
+    '<div class="muted" style="margin-top:10px">記録はこの端末の中にだけ保存されます（ネットには送りません）。記録 ' + R.length + ' 件。</div>' +
+    '</div>' +
+    '<div class="muted" style="text-align:center">棚卸ツール 版 ' + APP_VERSION + '</div>';
+}
+function bindSet() {
+  var dev = document.getElementById("dev");
+  dev.onchange = function () { S.device = dev.value.trim(); saveAll(); };
+  document.getElementById("snd").onchange = function (e) { S.sound = e.target.checked; saveAll(); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-up],[data-down]"), function (b) {
+    b.onclick = function () {
+      var up = b.hasAttribute("data-up"), i = parseInt(b.getAttribute(up ? "data-up" : "data-down"), 10), j = up ? i - 1 : i + 1;
+      if (j < 0 || j >= S.kubun.length) return;
+      var t = S.kubun[i]; S.kubun[i] = S.kubun[j]; S.kubun[j] = t;
+      saveAll(); render();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-edit]"), function (b) {
+    b.onclick = function () { editKubun(parseInt(b.getAttribute("data-edit"), 10)); };
+  });
+  document.getElementById("kbAdd").onclick = function () {
+    if (S.kubun.length >= 30) { alert("区分は30個までです。"); return; }
+    editKubun(-1);
+  };
+  document.getElementById("expRec").onclick = exportRecords;
+  document.getElementById("expSum2").onclick = exportSummary;
+  document.getElementById("impRec").onclick = function () {
+    pickFile(".csv,text/csv,text/comma-separated-values", function (f) {
+      readTextFile(f, function (text) {
+        var res = importRecordsCsv(text);
+        if (res.error) { alert("取り込めませんでした：" + res.error); return; }
+        saveAll(); render();
+        alert(res.added + " 件を取り込みました。" + (res.skipped ? "\n（すでにある " + res.skipped + " 件は入れていません）" : ""));
+      });
+    });
+  };
+  document.getElementById("expSet").onclick = function () {
+    shareFile("棚卸_区分設定_" + stamp() + ".json", JSON.stringify({ type: "tana-kubun", version: 1, kubun: S.kubun }, null, 2), "application/json");
+  };
+  document.getElementById("impSet").onclick = function () {
+    pickFile(".json,application/json", function (f) {
+      readTextFile(f, function (text) {
+        var d = null;
+        try { d = JSON.parse(text); } catch (e) { d = null; }
+        if (!d || d.type !== "tana-kubun" || !Array.isArray(d.kubun) || !d.kubun.length) { alert("区分設定のファイルではありません。"); return; }
+        if (!confirm("区分設定を、ファイルの内容（" + d.kubun.map(function (k) { return k.name; }).join("、") + "）に置き換えますか？")) return;
+        S.kubun = d.kubun.slice(0, 30).map(function (k) {
+          return { name: String(k.name || "").trim(), fmt: normalizeFormat(k.fmt), color: /^#[0-9A-Fa-f]{6}$/.test(k.color) ? k.color : "#FFFFFF", memo: String(k.memo || "") };
+        }).filter(function (k) { return k.name; });
+        if (kubunIndex(S.kubunSel) < 0) S.kubunSel = S.kubun[0].name;
+        saveAll(); render();
+      });
+    });
+  };
+  document.getElementById("clr").onclick = function () {
+    if (!R.length) { alert("記録はありません。"); return; }
+    if (!confirm("記録 " + R.length + " 件を全部消して、新しい棚卸を始めます。\n先に「記録をCSVで書き出す」をしましたか？")) return;
+    if (!confirm("本当に消してよいですか？（元に戻せません）")) return;
+    R = []; S.seq = 0; lastResult = null; saveAll(); render();
+  };
+}
+function editKubun(i) {
+  var isNew = i < 0;
+  var k = isNew ? { name: "", fmt: "品番,数量", color: PALETTE[S.kubun.length % PALETTE.length], memo: "" } : S.kubun[i];
+  var oldName = k.name;
+  openModal('<h2 style="margin-top:0">' + (isNew ? "区分を増やす" : "区分を変える") + '</h2>' +
+    '<label class="field"><span>区分名</span><input id="kn" class="input" type="text" autocomplete="off" value="' + esc(k.name) + '"></label>' +
+    '<div class="field"><span>QRの中身（QRに入っている順に、下のボタンを押して並べます）</span>' +
+    '<input id="kf" class="input" type="text" autocomplete="off" autocapitalize="off" value="' + esc(normalizeFormat(k.fmt)) + '">' +
+    '<div class="tokens">' + TOKENS.map(function (t) { return '<button class="chip" data-t="' + t + '">＋' + t + '</button>'; }).join("") +
+    '<button class="chip" data-t="!back">1つ消す</button><button class="chip" data-t="!clear">全部消す</button></div></div>' +
+    '<div class="field"><span>色</span><div class="swatches">' + PALETTE.map(function (c) {
+      return '<button class="swatch' + (c.toUpperCase() === String(k.color).toUpperCase() ? " sel" : "") + '" data-c="' + c + '" style="background:' + c + '"></button>';
+    }).join("") + '</div></div>' +
+    '<label class="field"><span>メモ（なくてもよい）</span><input id="km" class="input" type="text" autocomplete="off" value="' + esc(k.memo || "") + '"></label>' +
+    '<div id="ke" class="warn"></div>' +
+    '<div class="row" style="margin-top:10px"><button class="btn grow" id="kc">やめる</button><button class="btn primary grow" id="ko">' + (isNew ? "追加" : "保存") + '</button></div>' +
+    (isNew ? "" : '<button class="btn danger block" id="kd" style="margin-top:14px">この区分を消す</button>'),
+    function (m) {
+      var color = k.color, kf = m.querySelector("#kf");
+      Array.prototype.forEach.call(m.querySelectorAll("[data-t]"), function (b) {
+        b.onclick = function () {
+          var t = b.getAttribute("data-t"), cur = normalizeFormat(kf.value), arr = cur ? cur.split(",") : [];
+          if (t === "!back") arr.pop(); else if (t === "!clear") arr = []; else arr.push(t);
+          kf.value = arr.join(",");
+        };
+      });
+      Array.prototype.forEach.call(m.querySelectorAll("[data-c]"), function (b) {
+        b.onclick = function () {
+          color = b.getAttribute("data-c");
+          Array.prototype.forEach.call(m.querySelectorAll("[data-c]"), function (x) { x.classList.toggle("sel", x === b); });
+        };
+      });
+      m.querySelector("#kc").onclick = closeModal;
+      m.querySelector("#ko").onclick = function () {
+        var name = m.querySelector("#kn").value.trim(), fmt = normalizeFormat(kf.value), fe = formatError(fmt);
+        var err = !name ? "区分名を入れてください" : /[,，、]/.test(name) ? "区分名にカンマは使えません" :
+          S.kubun.some(function (x, j) { return j !== i && x.name === name; }) ? "同じ名前の区分があります" : fe;
+        if (err) { m.querySelector("#ke").textContent = err; return; }
+        var item = { name: name, fmt: fmt, color: color, memo: m.querySelector("#km").value.trim() };
+        if (isNew) S.kubun.push(item); else S.kubun[i] = item;
+        if (!isNew && oldName !== name) {
+          var n = R.filter(function (r) { return r.kubun === oldName; }).length;
+          if (n && confirm("区分名を「" + oldName + "」から「" + name + "」に変えました。\n「" + oldName + "」になっている記録が " + n + " 件あります。これも「" + name + "」に変えますか？")) {
+            R.forEach(function (r) { if (r.kubun === oldName) r.kubun = name; });
+          }
+          if (S.kubunSel === oldName) S.kubunSel = name;
+        }
+        saveAll(); closeModal(); render();
+      };
+      var del = m.querySelector("#kd");
+      if (del) del.onclick = function () {
+        if (S.kubun.length <= 1) { alert("区分は1つ以上必要です。"); return; }
+        var n = R.filter(function (r) { return r.kubun === oldName; }).length;
+        if (!confirm("区分「" + oldName + "」を消しますか？" + (n ? "\nこの区分の記録 " + n + " 件はエラーになり、集計に入らなくなります。" : ""))) return;
+        S.kubun.splice(i, 1);
+        if (kubunIndex(S.kubunSel) < 0) S.kubunSel = S.kubun[0].name;
+        saveAll(); closeModal(); render();
+      };
+    });
+}
+
+/* ---------------- モーダル・画面の切り替え ---------------- */
+function openModal(html, onMount) {
+  var root = document.getElementById("modalRoot");
+  root.innerHTML = '<div class="modal-bg"><div class="modal">' + html + '</div></div>';
+  var bg = root.firstChild;
+  bg.addEventListener("click", function (e) { if (e.target === bg) closeModal(); });
+  if (onMount) onMount(bg.firstChild);
+}
+function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
+
+function render() {
+  stopCamera();
+  var app = document.getElementById("app");
+  if (tab === "scan") { app.innerHTML = renderScan(); bindScan(); }
+  else if (tab === "list") { app.innerHTML = renderList(); bindList(); }
+  else if (tab === "sum") { app.innerHTML = renderSum(); bindSum(); }
+  else { app.innerHTML = renderSet(); bindSet(); }
+  Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+    b.classList.toggle("sel", b.getAttribute("data-tab") === tab);
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+  b.onclick = function () { tab = b.getAttribute("data-tab"); closeModal(); render(); window.scrollTo(0, 0); };
+});
+
+loadAll();
+render();
+
+// アプリを端末に保存する（2回目からはネットなしで起動できる）
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(function () { });
+}
+</script>
+</body>
+</html>
